@@ -24,8 +24,8 @@ Each object must have:
 2. "prompt": A highly detailed English image generation prompt for a realistic cinematic 8k image.
 Limit to 10 to 12 scenes. Do NOT wrap it in markdown block (like ```json), just return the raw JSON array."""
 
-# YAHAN THI GALTI - Maine 'fhttps' ko theek karke 'https' kar diya hai
-url = f"[https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=](https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=){api_key}"
+# YAHAN MINE URL KA TAREEKA BADAL DIYA HAI - Ab koi fhttps error nahi aayega!
+url = "[https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=](https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=)" + api_key
 payload = {"contents": [{"parts": [{"text": ai_prompt}]}]}
 
 try:
@@ -56,7 +56,7 @@ for i, scene in enumerate(scenes):
     
     # A. Download High Quality Portrait Image (1080x1920)
     safe_prompt = urllib.parse.quote(scene['prompt'] + ", highly detailed, cinematic lighting, 8k")
-    img_url = f"[https://image.pollinations.ai/prompt/](https://image.pollinations.ai/prompt/){safe_prompt}?width=1080&height=1920&nologo=true"
+    img_url = "[https://image.pollinations.ai/prompt/](https://image.pollinations.ai/prompt/)" + safe_prompt + "?width=1080&height=1920&nologo=true"
     
     img_response = requests.get(img_url, headers={'User-Agent': 'Mozilla/5.0'})
     if img_response.status_code == 200:
@@ -87,7 +87,7 @@ with open("videos_list.txt", "w") as f:
     for clip in clip_files:
         f.write(f"file '{clip}'\n")
 
-os.system(f"ffmpeg -f concat -safe 0 -i videos_list.txt -c copy {final_video_name} -loglevel error")
+os.system("ffmpeg -f concat -safe 0 -i videos_list.txt -c copy " + final_video_name + " -loglevel error")
 print(f"✅ FINAL VIDEO READY: {final_video_name}")
 
 # 5. Clean & Beautiful HTML Generation
