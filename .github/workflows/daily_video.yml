@@ -2,7 +2,7 @@ name: Auto Daily Video Creator
 
 on:
   schedule:
-    - cron: '0 6 * * *' # हर दिन सुबह 6 बजे
+    - cron: '0 6 * * *' 
   workflow_dispatch:
 
 permissions:
@@ -29,11 +29,10 @@ jobs:
           pip install moviepy==1.0.3
           pip install edge-tts
           pip install requests
-          pip install google-generativeai
+          pip install google-genai
 
       - name: Generate Today's Full Video & Webpage
         env:
-          # यहाँ हम GitHub Secrets से तुम्हारी API Key को कोड में भेज रहे हैं
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python generate_video.py
 
