@@ -3,22 +3,21 @@ import json
 import requests
 import urllib.parse
 from datetime import datetime
-import google.generativeai as genai
+from google import genai
 from moviepy.editor import ImageClip, AudioFileClip
 
 # आज की तारीख
 today_date = datetime.now().strftime("%Y-%m-%d")
 final_video_name = f"video_{today_date}.mp4"
 
-# 1. Gemini AI Setup
+# 1. New Gemini AI Setup
 api_key = os.environ.get("GEMINI_API_KEY")
 if not api_key:
     print("❌ Error: GEMINI_API_KEY not found! Please add it to GitHub Secrets.")
     exit(1)
 
-genai.configure(api_key=api_key)
-# gemini-1.5-flash मॉडल तेज़ और सस्ता/फ्री होता है
-model = genai.GenerativeModel('gemini-1.5-flash')
+# नए पैकेज के हिसाब से Client बनाना
+client = genai.Client(api_key=api_key)
 
 prompt = """
 You are an expert YouTube Shorts scriptwriter for a USA audience. 
@@ -39,18 +38,24 @@ Generate around 10 to 12 scenes.
 """
 
 print("🧠 Asking Gemini AI for today's trending USA script...")
-response = model.generate_content(prompt)
-
-# Clean and Parse JSON response
 try:
+    # नए तरीके से कंटेंट जनरेट करना
+    response = client.models.generate_content(
+        model='gemini-1.5-flash',
+        contents=prompt
+    )
+    
     json_text = response.text.strip()
     if json_text.startswith("```json"):
         json_text = json_text[7:-3].strip()
+    elif json_text.startswith("```"):
+        json_text = json_text[3:-3].strip()
+        
     scenes = json.loads(json_text)
     print(f"✅ Gemini successfully generated a script with {len(scenes)} scenes!")
 except Exception as e:
-    print("❌ Failed to parse Gemini response. Raw output was:")
-    print(response.text)
+    print("❌ Failed to parse Gemini response or API error.")
+    print(f"Error details: {e}")
     exit(1)
 
 headers = {'User-Agent': 'Mozilla/5.0'}
@@ -68,12 +73,12 @@ for i, scene in enumerate(scenes):
     
     # A. Download Image 
     safe_prompt = urllib.parse.quote(scene['prompt'])
-    img_url = f"https://image.pollinations.ai/prompt/{safe_prompt}?width=1920&height=1080&nologo=true"
+    img_url = f"[https://image.pollinations.ai/prompt/](https://image.pollinations.ai/prompt/){safe_prompt}?width=1920&height=1080&nologo=true"
     
-    response = requests.get(img_url, headers=headers)
-    if response.status_code == 200:
+    img_response = requests.get(img_url, headers=headers)
+    if img_response.status_code == 200:
         with open(img_file, 'wb') as f:
-            f.write(response.content)
+            f.write(img_response.content)
     else:
         print(f"⚠️ Error downloading image {i+1}. Skipping scene.")
         continue 
@@ -82,12 +87,14 @@ for i, scene in enumerate(scenes):
     os.system(f'edge-tts --voice "en-US-ChristopherNeural" --text "{scene["text"]}" --write-media {aud_file}')
     
     # C. Make Short Clip
-    audio = AudioFileClip(aud_file)
-    clip = ImageClip(img_file).set_duration(audio.duration)
-    clip = clip.set_audio(audio)
-    clip.write_videofile(clip_file, fps=24, codec="libx264", audio_codec="aac", logger=None)
-    
-    clip_files.append(clip_file)
+    try:
+        audio = AudioFileClip(aud_file)
+        clip = ImageClip(img_file).set_duration(audio.duration)
+        clip = clip.set_audio(audio)
+        clip.write_videofile(clip_file, fps=24, codec="libx264", audio_codec="aac", logger=None)
+        clip_files.append(clip_file)
+    except Exception as e:
+        print(f"⚠️ Error creating clip {i+1}: {e}")
 
 # 3. FFMPEG से सभी क्लिप्स जोड़ना
 print("🔗 Combining all short clips into the final video...")
