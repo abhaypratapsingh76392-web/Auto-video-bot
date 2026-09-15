@@ -9,7 +9,7 @@ from moviepy.editor import ImageClip, AudioFileClip
 today_date = datetime.now().strftime("%Y-%m-%d")
 final_video_name = f"video_{today_date}.mp4"
 
-# 1. Gemini Direct REST API Call (No SDK required - 100% Error Free)
+# 1. Gemini API Setup (Exactly as your working HTML code)
 api_key = os.environ.get("GEMINI_API_KEY")
 if not api_key:
     print("❌ Error: GEMINI_API_KEY not found in GitHub Secrets.")
@@ -33,19 +33,44 @@ Example format:
 Generate around 10 to 12 scenes.
 """
 
-print("🧠 Asking Gemini AI via Direct API (Like your HTML code)...")
-url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+print("🧠 Asking Gemini AI using YOUR Working HTML Method...")
+
+# URL & Headers from your HTML Code
+url = "https://generativelanguage.googleapis.com/v1beta/interactions"
+headers = {
+    "Content-Type": "application/json",
+    "x-goog-api-key": api_key
+}
+
+# Payload exactly matching your HTML Code
 payload = {
-    "contents": [{"parts": [{"text": prompt}]}]
+    "model": "gemini-3.6-flash",
+    "input": [
+        {
+            "type": "user_input",
+            "content": [{"type": "text", "text": prompt}]
+        }
+    ],
+    "store": False
 }
 
 try:
-    response = requests.post(url, json=payload, headers={"Content-Type": "application/json"})
+    response = requests.post(url, json=payload, headers=headers)
     data = response.json()
     
-    # Extracting text from API response
-    json_text = data['candidates'][0]['content']['parts'][0]['text'].strip()
-    
+    if response.status_code != 200:
+        print(f"❌ API Error: {data}")
+        exit(1)
+
+    # Extracting text exactly like 'getModelText(data)' in your HTML
+    json_text = ""
+    for step in data.get("steps", []):
+        if step.get("type") == "model_output":
+            for item in step.get("content", []):
+                if item.get("type") == "text":
+                    json_text += item.get("text", "")
+                    
+    json_text = json_text.strip()
     if json_text.startswith("```json"):
         json_text = json_text[7:-3].strip()
     elif json_text.startswith("```"):
@@ -55,10 +80,10 @@ try:
     print(f"✅ Gemini successfully generated script with {len(scenes)} scenes!")
 except Exception as e:
     print("❌ API Error or Parsing Failed.")
-    print("Response Data:", response.text if 'response' in locals() else e)
+    print(f"Error: {e}")
     exit(1)
 
-headers = {'User-Agent': 'Mozilla/5.0'}
+headers_image = {'User-Agent': 'Mozilla/5.0'}
 clip_files = []
 
 print("🚀 Starting Video Generation Process (Chunk-by-Chunk)...")
@@ -75,7 +100,7 @@ for i, scene in enumerate(scenes):
     safe_prompt = urllib.parse.quote(scene['prompt'])
     img_url = f"https://image.pollinations.ai/prompt/{safe_prompt}?width=1920&height=1080&nologo=true"
     
-    img_response = requests.get(img_url, headers=headers)
+    img_response = requests.get(img_url, headers=headers_image)
     if img_response.status_code == 200:
         with open(img_file, 'wb') as f:
             f.write(img_response.content)
@@ -115,19 +140,7 @@ html_header = """<html>
         h1 { color: #ff0000; }
         .video-container { display: inline-block; margin: 15px; padding: 20px; background: #222; border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.5); }
         video { width: 100%; max-width: 500px; border-radius: 10px; margin-bottom: 15px; }
-        
-        /* Download Button CSS */
-        .download-btn {
-            display: inline-block;
-            background: #4285f4;
-            color: white;
-            padding: 12px 24px;
-            text-decoration: none;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 8px;
-            transition: background 0.3s;
-        }
+        .download-btn { display: inline-block; background: #4285f4; color: white; padding: 12px 24px; text-decoration: none; font-size: 16px; font-weight: bold; border-radius: 8px; transition: background 0.3s; }
         .download-btn:hover { background: #3367d6; }
     </style>
 </head>
@@ -143,7 +156,6 @@ all_videos.sort(reverse=True) # लेटेस्ट वीडियो ऊप�
 with open("index.html", "w") as html_file:
     html_file.write(html_header)
     for vid in all_videos:
-        # यहाँ पर डाउनलोड बटन (download attribute के साथ) जोड़ा गया है
         html_file.write(f'''
         <div class="video-container">
             <h3>Date: {vid.replace('video_', '').replace('.mp4', '')}</h3>
