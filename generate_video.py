@@ -5,9 +5,8 @@ import requests
 import urllib.parse
 from datetime import datetime
 
-# 1. API Keys Setup (Only Gemini Needed!)
+# 1. API Keys Setup
 api_key = os.environ.get("GEMINI_API_KEY")
-
 if not api_key:
     print("❌ Error: GEMINI_API_KEY not found in GitHub Secrets!")
     exit(1)
@@ -21,14 +20,14 @@ if len(sys.argv) > 2 and sys.argv[1] == "--custom":
 today_date = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 final_video_name = f"video_{mode}_{today_date}.mp4"
 
-# 2. Gemini AI: Script, Search Keywords & Auto-Language Voice
+# 2. Gemini AI Script
 if mode == "custom":
     print(f"🛠️ Custom Video Mode! Prompt: {custom_prompt}")
     ai_prompt = f"""You are a video scriptwriter. The user wants a video about: "{custom_prompt}".
     Output STRICTLY as a JSON array. Each object must have:
-    1. "text": The narration in the exact language the user used (Hindi or English).
+    1. "text": Narration in user's language (Hindi or English).
     2. "keyword": 1-2 word simple English search term to find real stock video (e.g. "hacker", "forest", "city night").
-    3. "voice": If the text is Hindi, use "hi-IN-MadhurNeural". If English, use "en-US-ChristopherNeural".
+    3. "voice": If Hindi, use "hi-IN-MadhurNeural". If English, use "en-US-ChristopherNeural".
     Limit to 4-6 scenes. No markdown wrappers."""
 else:
     print("🤖 Auto Daily Mode!")
@@ -61,30 +60,29 @@ except Exception as e:
 
 clip_files = []
 
-# 3. THE MAGIC: Download REAL Videos directly from Web & Generate Voice
+# 3. Download REAL Videos (With YouTube Anti-Bot Bypass)
 for i, scene in enumerate(scenes):
-    print(f"🎬 Scene {i+1} | Keyword: {scene['keyword']} | Voice: {scene['voice']}")
+    print(f"🎬 Scene {i+1} | Keyword: {scene['keyword']}")
     vid_file = f"temp_raw_vid_{i}.mp4"
     aud_file = f"temp_aud_{i}.mp3"
     clip_file = f"temp_clip_{i}.mp4"
     
-    # A. Magic Video Search (yt-dlp) - Finds No Copyright Stock footage
     search_query = f"{scene['keyword']} stock footage no copyright"
-    print(f"🔍 Extracting Magic Video for: {search_query}")
     
-    # yt-dlp command to download best short mp4 video silently
-    yt_cmd = f'yt-dlp "ytsearch1:{search_query}" --match-filter "duration < 180" -f "best[ext=mp4]/bestvideo[ext=mp4]" -o "{vid_file}" --force-overwrites --quiet'
+    # TRICK 1: Pretend to be an Android Phone to bypass YouTube Bot Check
+    yt_cmd = f'yt-dlp "ytsearch1:{search_query}" --extractor-args "youtube:player_client=android" --match-filter "duration < 180" -f "best[ext=mp4]/bestvideo[ext=mp4]" -o "{vid_file}" --force-overwrites --quiet'
     os.system(yt_cmd)
     
-    # Fallback if first search failed
+    # TRICK 2: If YouTube still blocks, Fallback to Dailymotion magically!
     if not os.path.exists(vid_file):
-        os.system(f'yt-dlp "ytsearch1:{scene["keyword"]}" --match-filter "duration < 120" -f "best[ext=mp4]" -o "{vid_file}" --force-overwrites --quiet')
+        print(f"⚠️ YouTube blocked. Trying Dailymotion for: {search_query}")
+        os.system(f'yt-dlp "dmsearch1:{search_query}" -f "best[ext=mp4]" -o "{vid_file}" --force-overwrites --quiet')
 
     if os.path.exists(vid_file):
-        # B. Generate Voice (Hindi or English automatically)
+        # Generate Voice
         os.system(f'edge-tts --voice "{scene["voice"]}" --text "{scene["text"]}" --write-media {aud_file}')
         
-        # C. FFMPEG MAGIC: Crop horizontal video to Vertical Shorts (1080x1920) & Merge
+        # Crop to Shorts format & Merge
         ffmpeg_cmd = (
             f'ffmpeg -y -stream_loop -1 -i "{vid_file}" -i "{aud_file}" '
             f'-map 0:v:0 -map 1:a:0 '
@@ -96,7 +94,7 @@ for i, scene in enumerate(scenes):
     else:
         print(f"⚠️ Magic failed for {scene['keyword']}, skipping scene.")
 
-# 4. Merge All Clips into Final Video
+# 4. Merge All Clips
 print("🔗 Combining clips into Full Video...")
 with open("videos_list.txt", "w") as f:
     for clip in clip_files:
@@ -114,7 +112,7 @@ html_content = f"""
 <!DOCTYPE html>
 <html>
 <head>
-    <title>AI Video Studio</title>
+    <title>AI Real Video Studio</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         body {{ background: #0f0f0f; color: white; font-family: Arial; margin: 0; padding: 20px; text-align: center; }}
@@ -141,7 +139,7 @@ html_content = f"""
 
     <h3 style="text-align:left; color:#4285f4;">🎯 My Custom Videos (Hindi/Eng)</h3>
     <div class="grid">
-        {"".join([f'<div class="vid-card"><h4>{v.replace(".mp4", "")}</h4><video src="{v}" controls preload="metadata"></video><br><a href="{v}" download class="btn" style="display:block; margin-top:10px;">⬇️ Download</a></div>' for v in custom_vids]) or "<p style='color:#777;'>No custom videos. Create one!</p>"}
+        {"".join([f'<div class="vid-card"><h4>{v.replace(".mp4", "")}</h4><video src="{v}" controls preload="metadata"></video><br><a href="{v}" download class="btn" style="display:block; margin-top:10px;">⬇️ Download</a></div>' for v in custom_vids]) or "<p style='color:#777;'>No custom videos yet. Create one!</p>"}
     </div>
 
     <h3 style="text-align:left; color:#00ffcc; margin-top:40px;">🌍 Daily Auto Videos</h3>
@@ -149,7 +147,6 @@ html_content = f"""
         {"".join([f'<div class="vid-card"><h4>{v.replace(".mp4", "")}</h4><video src="{v}" controls preload="metadata"></video><br><a href="{v}" download class="btn" style="display:block; margin-top:10px;">⬇️ Download</a></div>' for v in auto_vids])}
     </div>
 
-    <!-- CREATE CUSTOM VIDEO UI -->
     <div id="modal">
         <div class="modal-box" id="input-screen">
             <h3>Make Real Video</h3>
@@ -160,7 +157,6 @@ html_content = f"""
             <button class="btn" onclick="document.getElementById('modal').style.display='none'" style="width: 100%; margin-top: 10px; background: #555;">Cancel</button>
         </div>
         
-        <!-- LOADING SCREEN -->
         <div class="modal-box" id="loading-screen">
             <h3>Generating Real Video...</h3>
             <div class="spinner"></div>
