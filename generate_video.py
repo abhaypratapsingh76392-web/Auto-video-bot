@@ -24,6 +24,7 @@ Each object must have:
 2. "prompt": A highly detailed English image generation prompt for a realistic cinematic 8k image.
 Limit to 10 to 12 scenes. Do NOT wrap it in markdown block (like ```json), just return the raw JSON array."""
 
+# YAHAN THI GALTI - Maine 'fhttps' ko theek karke 'https' kar diya hai
 url = f"[https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=](https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=){api_key}"
 payload = {"contents": [{"parts": [{"text": ai_prompt}]}]}
 
@@ -69,7 +70,6 @@ for i, scene in enumerate(scenes):
     os.system(f'edge-tts --voice "en-US-ChristopherNeural" --text "{scene["text"]}" --write-media {aud_file}')
     
     # C. FFMPEG MAGIC: Add Cinematic Zoom (Motion)
-    # यह कोड रुकी हुई फोटो को धीरे-धीरे ज़ूम करेगा जिससे असली वीडियो वाली फील आएगी।
     print("🎥 Applying Cinematic Zoom Effect...")
     ffmpeg_cmd = (
         f'ffmpeg -y -loop 1 -framerate 25 -i "{img_file}" -i "{aud_file}" '
@@ -90,7 +90,7 @@ with open("videos_list.txt", "w") as f:
 os.system(f"ffmpeg -f concat -safe 0 -i videos_list.txt -c copy {final_video_name} -loglevel error")
 print(f"✅ FINAL VIDEO READY: {final_video_name}")
 
-# 5. Clean & Beautiful HTML Generation (No Forms, No Errors)
+# 5. Clean & Beautiful HTML Generation
 all_videos = sorted([f for f in os.listdir('.') if f.startswith('video_') and f.endswith('.mp4')], reverse=True)
 
 html_content = f"""
