@@ -2,11 +2,11 @@ name: Auto Daily Video Creator
 
 on:
   schedule:
-    - cron: '0 6 * * *' # हर दिन सुबह 6 बजे (UTC)
+    - cron: '0 6 * * *' # हर दिन सुबह 6 बजे
   workflow_dispatch:
 
 permissions:
-  contents: write # (IMPORTANT) यह GitHub को कोड और वीडियो सेव करने की परमिशन देता है
+  contents: write
 
 jobs:
   build-and-deploy:
@@ -29,8 +29,12 @@ jobs:
           pip install moviepy==1.0.3
           pip install edge-tts
           pip install requests
+          pip install google-generativeai
 
       - name: Generate Today's Full Video & Webpage
+        env:
+          # यहाँ हम GitHub Secrets से तुम्हारी API Key को कोड में भेज रहे हैं
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python generate_video.py
 
       - name: Commit and Push Video & HTML to GitHub
@@ -38,5 +42,5 @@ jobs:
           git config --global user.name 'GitHub Actions Bot'
           git config --global user.email 'actions@github.com'
           git add video_*.mp4 index.html
-          git commit -m "Auto-added new video for today" || echo "No changes to commit"
+          git commit -m "Auto-added new AI generated video for today" || echo "No changes to commit"
           git push
