@@ -4,7 +4,7 @@ on:
   schedule:
     # 17:30 UTC = 11:00 PM in India (IST)
     - cron: '30 17 * * *' 
-  workflow_dispatch: # यह बटन तुम्हें गिटहब पर दिखेगा जिससे तुम अभी तुरंत रन कर सकते हो
+  workflow_dispatch:
 
 permissions:
   contents: write
