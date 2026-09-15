@@ -1,9 +1,11 @@
-name: Auto Daily Video
+name: Make Custom Video
 
 on:
-  schedule:
-    - cron: '0 6 * * *' 
   workflow_dispatch:
+    inputs:
+      custom_prompt:
+        description: 'What should the video be about?'
+        required: true
 
 permissions:
   contents: write
@@ -17,15 +19,15 @@ jobs:
       - uses: actions/setup-python@v4
         with: 
           python-version: '3.10'
-          
+      
       - name: Install System Dependencies
         run: sudo apt-get update && sudo apt-get install -y ffmpeg nodejs
-        
+      
       - name: Install Python Libraries
         run: pip install edge-tts requests yt-dlp -U
-        
+      
       - name: Run Magic Script
-        run: python generate_video.py
+        run: python generate_video.py --custom "${{ github.event.inputs.custom_prompt }}"
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           
@@ -34,5 +36,5 @@ jobs:
           git config --global user.name 'GitHub Actions Bot'
           git config --global user.email 'actions@github.com'
           git add *.mp4 index.html || echo "No new files to add"
-          git commit -m "Auto Daily Video Added!" || echo "No changes to commit"
+          git commit -m "Custom Video Generated!" || echo "No changes to commit"
           git push
