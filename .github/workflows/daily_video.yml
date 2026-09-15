@@ -1,13 +1,15 @@
-name: Auto Daily Video Generator
+name: Auto Daily Video Creator
 
 on:
   schedule:
-    # यह क्रोन जॉब हर दिन सुबह 6 बजे (UTC) रन होगा। आप समय बदल सकते हैं।
-    - cron: '0 6 * * *'
-  workflow_dispatch: # यह बटन देगा जिससे आप जब चाहें मैन्युअली रन कर सकें
+    - cron: '0 6 * * *' # हर दिन सुबह 6 बजे (UTC)
+  workflow_dispatch:
+
+permissions:
+  contents: write # (IMPORTANT) यह GitHub को कोड और वीडियो सेव करने की परमिशन देता है
 
 jobs:
-  build-video:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -19,19 +21,22 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install FFmpeg (Required for Video)
+      - name: Install System Dependencies (FFmpeg)
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
       - name: Install Python Libraries
         run: |
           pip install moviepy==1.0.3
           pip install edge-tts
+          pip install requests
 
-      - name: Run Video Generation Script
+      - name: Generate Today's Full Video & Webpage
         run: python generate_video.py
 
-      - name: Upload Video as Artifact (To Download)
-        uses: actions/upload-artifact@v4
-        with:
-          name: Daily-Generated-Video
-          path: final_video.mp4
+      - name: Commit and Push Video & HTML to GitHub
+        run: |
+          git config --global user.name 'GitHub Actions Bot'
+          git config --global user.email 'actions@github.com'
+          git add video_*.mp4 index.html
+          git commit -m "Auto-added new video for today" || echo "No changes to commit"
+          git push
