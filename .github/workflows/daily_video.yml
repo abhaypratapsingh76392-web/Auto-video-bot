@@ -1,44 +1,38 @@
-name: Auto Daily Video Creator
+name: Make Custom Video
 
 on:
-  schedule:
-    - cron: '0 6 * * *' 
   workflow_dispatch:
+    inputs:
+      custom_prompt:
+        description: 'What should the video be about?'
+        required: true
 
 permissions:
   contents: write
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
-      - name: Install System Dependencies (FFmpeg)
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with: { python-version: '3.10' }
+      
+      - name: Install System Dependencies
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
-
-      - name: Install Python Libraries
-        run: |
-          pip install moviepy==1.0.3
-          pip install edge-tts
-          pip install requests
-
-      - name: Generate Today's Full Video & Webpage
+      
+      - name: Install Python Libraries (Including MAGIC Tool)
+        run: pip install edge-tts requests yt-dlp
+      
+      - name: Run Magic Script
+        run: python generate_video.py --custom "${{ github.event.inputs.custom_prompt }}"
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: python generate_video.py
-
-      - name: Commit and Push Video & HTML to GitHub
+          
+      - name: Save to GitHub
         run: |
           git config --global user.name 'GitHub Actions Bot'
           git config --global user.email 'actions@github.com'
-          git add video_*.mp4 index.html
-          git commit -m "Auto-added new AI generated video with download button" || echo "No changes to commit"
+          git add video_custom_*.mp4 index.html
+          git commit -m "Custom FULL Video Generated via Magic!" || echo "No changes"
           git push
